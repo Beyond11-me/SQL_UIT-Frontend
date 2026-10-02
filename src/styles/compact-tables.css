@@ -1,0 +1,82 @@
+/* Compact tables keep the page in the viewport and scroll each data region. */
+body:has(.compact-tables-page) { overflow: hidden; }
+.admin-main:has(.compact-tables-page) { height: calc(100dvh - var(--header-height)); min-height: 0; overflow: hidden; }
+.admin-main:has(.compact-tables-page) > .route-content { height: 100%; min-height: 0; overflow: hidden; }
+.admin-page.compact-tables-page { height: 100%; min-height: 0; padding: 16px 24px; overflow: hidden; }
+.compact-tables-page .admin-overview-split { height: 100%; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); align-items: stretch; gap: 20px; overflow: hidden; }
+.compact-tables-page .admin-overview-split > .admin-primary { display: grid; grid-template-rows: minmax(0, 0.9fr) minmax(0, 1.1fr); min-height: 0; overflow: hidden; }
+.compact-tables-page .admin-overview-split > .admin-side { position: static; align-self: stretch; min-height: 0; max-height: none; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.compact-tables-page .admin-overview-split > .admin-primary > section { display: flex; flex-direction: column; min-height: 0; margin: 0; padding: 14px 16px; overflow: hidden; }
+.compact-tables-page .admin-section-heading { flex: none; margin: 0 0 10px; font-size: 15px; line-height: 22px; }
+.compact-table-scroll { flex: 1; min-height: 0; min-width: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.compact-table-scroll .admin-table { border-collapse: separate; border-spacing: 0; }
+.compact-table-scroll .admin-table td { padding: 10px 12px; }
+.compact-table-scroll .admin-table th { position: sticky; top: 0; z-index: 1; background: var(--subtle); }
+.compact-tables-page .admin-table-pagination { gap: 8px; }
+.compact-tables-page .admin-table-pagination > .button { min-height: 30px; padding: 5px 9px; font-size: 11px; }
+.compact-tables-page .admin-table-pagination > span { font-size: 11px; }
+@media (max-width: 760px) {
+  .admin-page.compact-tables-page { padding: 12px; }
+  .compact-tables-page .admin-overview-split { grid-template-columns: minmax(0, 1fr); }
+  .compact-tables-page .admin-overview-split > .admin-side { display: none; }
+  .compact-tables-page.has-overview-selection .admin-overview-split > .admin-primary { display: none; }
+  .compact-tables-page.has-overview-selection .admin-overview-split > .admin-side { display: block; }
+  .compact-tables-page .admin-overview-split > .admin-primary > section { padding: 12px; }
+  .compact-tables-page .admin-table-pagination { width: auto; margin-left: auto; }
+}
+@media (max-height: 520px) {
+  .admin-page.compact-tables-page { padding-top: 8px; padding-bottom: 8px; }
+  .compact-tables-page .admin-overview-split > .admin-primary > section { padding-top: 8px; padding-bottom: 8px; }
+  .compact-tables-page .admin-section-heading { margin-bottom: 6px; }
+}
+
+.admin-overview-table-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; flex: none; gap: 6px 12px; margin-bottom: 10px; }
+.compact-tables-page .admin-overview-table-heading > .admin-section-heading { margin: 0; }
+
+.admin-overview-table-controls { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px 16px; margin-left: auto; }
+.admin-overview-table-controls > span { font-size: 11px; line-height: 18px; white-space: nowrap; }
+.compact-tables-page .admin-overview-table-controls > .admin-table-pagination { flex-wrap: nowrap; width: auto; margin: 0; }
+
+/* Single-table management pages use the same bounded scrolling contract. */
+.admin-page.compact-admin-list-page { display: flex; flex-direction: column; gap: 12px; }
+.compact-admin-list-page > .admin-user-filter-row,.compact-admin-list-page > .admin-pending-banner,.compact-admin-list-page > .admin-notice { flex: none; margin: 0; }
+.compact-admin-list-page > .admin-split { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); align-items: stretch; gap: 20px; overflow: hidden; }
+.compact-admin-list-page > .admin-split > .admin-primary { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.compact-admin-list-page > .admin-split > .admin-side { position: static; align-self: stretch; min-height: 0; max-height: none; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.admin-compact-list-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; flex: none; gap: 8px 16px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.admin-compact-list-heading h2 { margin: 0; font-size: 15px; line-height: 22px; }
+.admin-compact-list-controls { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px 16px; margin-left: auto; }
+.admin-compact-list-controls > span { font-size: 11px; line-height: 18px; color: var(--muted); white-space: nowrap; }
+.compact-tables-page .admin-compact-list-controls > .admin-table-pagination { flex-wrap: nowrap; width: auto; margin: 0; }
+.admin-compact-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.admin-compact-panel-header > .compact-panel-back { display: none; }
+@media (max-width: 760px) {
+  .compact-admin-list-page > .admin-split { grid-template-columns: minmax(0, 1fr); }
+  .compact-admin-list-page > .admin-split > .admin-side { display: none; }
+  .compact-admin-list-page.show-user-details > .admin-split > .admin-primary,.compact-admin-list-page.show-user-details > .admin-user-filter-row { display: none; }
+  .compact-admin-list-page.show-user-details > .admin-split > .admin-side { display: block; }
+  .admin-compact-panel-header > .compact-panel-back { display: inline-flex; }
+  .compact-admin-list-page .admin-user-filter-row { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .compact-admin-list-page .admin-user-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .compact-admin-list-page .admin-user-filters > .admin-field:first-child { grid-column: 1 / -1; }
+}
+
+.admin-compact-list-footer { flex: none; padding: 12px 16px; border-top: 1px solid var(--border); }
+.admin-compact-list-footer > .admin-compact-list-controls { justify-content: space-between; margin: 0; }
+
+.compact-admin-list-page > .admin-course-filter-row { flex: none; margin: 0; }
+.compact-admin-list-page .admin-list-table-footer { flex: none; padding: 12px 16px; }
+.compact-admin-list-page .admin-list-table-footer > .admin-table-footer { font-size: 11px; padding: 0; }
+@media (max-width: 760px) {
+  .compact-admin-list-page.show-course-details > .admin-split > .admin-primary,.compact-admin-list-page.show-course-details > .admin-course-filter-row { display: none; }
+  .compact-admin-list-page.show-course-details > .admin-split > .admin-side { display: block; }
+  .compact-admin-list-page .admin-course-filter-row { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+}
+
+.compact-admin-list-page > .admin-practice-filters { flex: none; margin: 0; }
+@media (max-width: 760px) {
+  .compact-admin-list-page.show-practice-details > .admin-split > .admin-primary,.compact-admin-list-page.show-practice-details > .admin-practice-filters { display: none; }
+  .compact-admin-list-page.show-practice-details > .admin-split > .admin-side { display: block; }
+}
+
+.compact-admin-list-page .compact-table-scroll { scrollbar-gutter: auto; }
