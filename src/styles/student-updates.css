@@ -55,10 +55,6 @@
   width: 40px;
   height: 40px;
 }
-.notification-trigger[aria-expanded="true"],
-.streak-trigger[aria-expanded="true"] {
-  border: 2px solid var(--accent);
-}
 .unread-dot {
   position: absolute;
   top: 2px;
@@ -964,6 +960,19 @@ body:has(.practice-page) {
 .contest-markdown p { margin:0 0 10px; }
 .contest-markdown ul,.contest-markdown ol { padding-left:20px; }
 .contest-markdown pre { overflow-x:auto; padding:10px; border:1px solid var(--border); background:var(--surface); }
+.problem-markdown { min-width:0; overflow-wrap:anywhere; line-height:1.6; color:var(--text); }
+.problem-markdown > :first-child { margin-top:0; }
+.problem-markdown > :last-child { margin-bottom:0; }
+.problem-markdown p { margin:0 0 12px; }
+.problem-markdown ul,.problem-markdown ol { margin:0 0 12px; padding-left:22px; }
+.problem-markdown li + li { margin-top:4px; }
+.problem-markdown code { border-radius:3px; padding:1px 4px; background:var(--subtle); }
+.problem-markdown pre { overflow:auto; margin:0 0 12px; padding:10px; background:var(--subtle); }
+.problem-markdown .problem-expression { width:fit-content; max-width:100%; margin:0 0 12px; padding:8px 10px; border:1px solid var(--border-subtle); border-radius:4px; background:var(--subtle); color:var(--text); white-space:pre-wrap; overflow-wrap:anywhere; }
+.problem-markdown .problem-expression code { padding:0; background:transparent; }
+.workspace-hint-content { margin-bottom:12px; }
+.workspace-hint-content p { white-space:pre-line; }
+.teacher-preview-dialog > h4 { margin:14px 0 6px; font-size:12px; }
 .contest-rules { white-space:pre-line; line-height:1.6; }
 .contest-leaderboard { margin-top:20px; }
 .contest-leaderboard h3 { font-size:13px; }
