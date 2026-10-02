@@ -1577,3 +1577,11 @@ body:has(.assignment-work-page), body:has(.scope-detail-page) { background: var(
   .submission-detail-footer small { text-align:center; }
   .submission-detail-footer .button { justify-content:center; }
 }
+
+/* Pagination affects only the student contest feed. */
+.contest-feed-panel { scroll-margin-top: calc(var(--header-height) + 12px); }
+.contest-feed-panel > .section-heading { flex-wrap: wrap; gap: 12px; }
+.contest-list-controls { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px 14px; margin-left: auto; }
+.contest-list-pagination { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.contest-list-pagination > span { color: var(--muted); font-size: 11px; }
+.contest-list-pagination .button { min-height: 30px; padding: 5px 9px; font-size: 11px; }

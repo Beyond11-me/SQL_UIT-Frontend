@@ -536,15 +536,7 @@ export function AdminCoursesPage() {
         ))}
       </select></Field>
       <Field label="CLASS DATES"><input readOnly value={selected.startDate && selected.endDate ? `${selected.startDate} – ${selected.endDate}` : selected.dates} /></Field><p className="admin-muted">{selected.students} enrolled student{selected.students === 1 ? "" : "s"}</p>
-      <div className="admin-button-stack"><Link className="button admin-button" to={`/admin/courses/classes/${encodeURIComponent(selected.id)}/edit`}>Edit class</Link></div><div className="admin-detail-divider" />
-      <button className="admin-danger-link" onClick={async () => { 
-        const status = selected.status === "Archived" ? "Active" : "Archived"; 
-        try {
-          const res = await adminService.updateClass(selected.id, { status });
-          setClasses((all) => all.map((item) => item.id === selected.id ? res : item));
-          setNotice(`${selected.id} ${status === "Archived" ? "archived" : "restored"}.`);
-        } catch (error) { setNotice(error instanceof Error ? error.message : "Could not update class."); }
-      }}>{selected.status === "Archived" ? "Restore class" : "Archive class"}</button>
+      <div className="admin-button-stack"><Link className="button admin-button" to={`/admin/courses/classes/${encodeURIComponent(selected.id)}/edit`}>Edit class</Link></div>
     </> : <h2>Class details</h2>} />
     {dialog && <CourseDialog error={createError} busy={creating} onClose={() => setDialog(false)} onCreate={async (id, course, term) => {
       if (classes.some((item) => item.id.toLowerCase() === id.toLowerCase())) { setCreateError(`A class with ID ${id} already exists.`); return; }
