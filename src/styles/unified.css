@@ -410,7 +410,7 @@
 }
 
 .auth-form-panel {
-  background: radial-gradient(circle at 100% 0%, var(--accent-subtle), transparent 35%), var(--surface);
+  background: var(--canvas);
 }
 .auth-form-wrap {
   width: min(390px, calc(100% - 48px));
