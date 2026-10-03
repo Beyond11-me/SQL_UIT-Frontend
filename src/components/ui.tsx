@@ -96,6 +96,8 @@ export function Dialog({
   className = "",
   closeOnBackdrop = true,
   closeOnCancel = true,
+  headerActions,
+  hideClose = false,
 }: {
   title: string;
   children: ReactNode;
@@ -103,6 +105,8 @@ export function Dialog({
   className?: string;
   closeOnBackdrop?: boolean;
   closeOnCancel?: boolean;
+  headerActions?: ReactNode;
+  hideClose?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -139,13 +143,14 @@ export function Dialog({
     >
       <div className="section-heading">
         <h2 id={titleId}>{title}</h2>
-        <button
+        {headerActions}
+        {!hideClose && <button
           className="icon-button"
           onClick={onClose}
           aria-label="Close dialog"
         >
           <X size={18} />
-        </button>
+        </button>}
       </div>
       {children}
     </dialog>
