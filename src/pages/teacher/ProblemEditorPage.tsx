@@ -1,3 +1,5 @@
+import CodeMirror from "@uiw/react-codemirror";
+import { sql, MSSQL } from "@codemirror/lang-sql";
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Dialog, ErrorState, Loading, Status } from "../../components/ui";
@@ -214,6 +216,27 @@ function getSelectedTextSize(editor: HTMLElement, selection: Selection | null): 
   return [...sizes][0];
 }
 
+function SqlPreview({ value, label, onOpen }: { value: string; label: string; onOpen: () => void }) {
+  return (
+    <div className="teacher-sql-inline-preview" role="button" tabIndex={0} aria-label={label + " — open editor"} aria-haspopup="dialog"
+      onClick={(event) => {
+        const target = event.target as HTMLElement;
+        if (target.closest(".cm-gutters")) return;
+        const scroller = event.currentTarget.querySelector(".cm-scroller");
+        if (scroller) {
+          const bounds = scroller.getBoundingClientRect();
+          if (event.clientX >= bounds.left + scroller.clientLeft + scroller.clientWidth ||
+              event.clientY >= bounds.top + scroller.clientTop + scroller.clientHeight) return;
+        }
+        onOpen();
+      }}
+      onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); onOpen(); } }}>
+      <CodeMirror value={value} height="140px" editable={false} readOnly extensions={[sql({ dialect: MSSQL })]}
+        basicSetup={{ lineNumbers: true, foldGutter: false, highlightActiveLine: false, highlightActiveLineGutter: false }} />
+    </div>
+  );
+}
+
 export function ProblemEditorPage() {
   const { problemId } = useParams();
   const navigate = useNavigate();
@@ -307,8 +330,40 @@ export function ProblemEditorPage() {
   const [validating, setValidating] = useState(false);
   const [validationState, setValidationState] = useState("Not validated");
   const [dialog, setDialog] = useState<"preview" | "statement" | "requirements" | null>(null);
+  const [sqlEditor, setSqlEditor] = useState<{ field: "schema" | "referenceSolution" | "seed"; index: number; title: string } | null>(null);
+  const [sqlDraft, setSqlDraft] = useState("");
+  const [activeDataset, setActiveDataset] = useState(0);
+  const [datasetNames, setDatasetNames] = useState<string[]>([]);
+  useEffect(() => {
+    setActiveDataset(0);
+    try {
+      const stored = JSON.parse(localStorage.getItem(`teacher-dataset-names:${selectedId}`) || "[]");
+      setDatasetNames(Array.isArray(stored) ? stored.map((name) => typeof name === "string" ? name : "") : []);
+    } catch { setDatasetNames([]); }
+  }, [selectedId]);
+  function changeDatasetNames(names: string[]) {
+    setDatasetNames(names);
+    try { localStorage.setItem(`teacher-dataset-names:${selectedId}`, JSON.stringify(names)); } catch { /* Editing remains available when storage is blocked. */ }
+  }
   const [previewTab, setPreviewTab] = useState<"Description" | "Database">("Description");
   const [previewHintOpen, setPreviewHintOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  async function deleteProblem() {
+    if (selectedId === "new" || deleteBusy || saving || validating) return;
+    setDeleteBusy(true);
+    setDeleteError("");
+    try {
+      await teacherService.deleteProblem(selectedId);
+      navigate("/teacher/problems", { replace: true });
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Could not delete this problem.");
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
   const richTextEditorRef = useRef<HTMLDivElement>(null);
   const [selectedTextSize, setSelectedTextSize] = useState<number | "mixed" | null>(null);
 
@@ -370,6 +425,23 @@ export function ProblemEditorPage() {
     setProblem((current) => current ? ({ ...current, [field]: value }) : null);
     setSaveState("Unsaved changes");
     setValidationState("Not validated");
+  }
+
+  function openSqlEditor(field: "schema" | "referenceSolution" | "seed", index = 0) {
+    if (!problem) return;
+    const title = field === "schema" ? "Schema SQL" : field === "referenceSolution" ? "Reference solution SQL" : `Test dataset ${index + 1} SQL`;
+    setSqlDraft(field === "seed" ? (problem.testCases || [{ seedData: problem.seedData, isHidden: false }])[index].seedData : problem[field]);
+    setSqlEditor({ field, index, title });
+  }
+
+  function applySqlEditor() {
+    if (!problem || !sqlEditor) return;
+    if (sqlEditor.field === "seed") {
+      const datasets = [...(problem.testCases || [{ seedData: problem.seedData, isHidden: false }])];
+      datasets[sqlEditor.index] = { ...datasets[sqlEditor.index], seedData: sqlDraft };
+      update("testCases", datasets);
+    } else update(sqlEditor.field, sqlDraft);
+    setSqlEditor(null);
   }
 
   function updateRichTextValue() {
@@ -811,6 +883,7 @@ export function ProblemEditorPage() {
               >
                 Preview
               </button>
+              {selectedId !== "new" && <button className="button teacher-danger-button" type="button" disabled={saving || validating || deleteBusy} onClick={() => { setDeleteError(""); setConfirmDelete(true); }}>Delete</button>}
               <button className="button primary" type="button" disabled={saving} onClick={saveProblem}>
                 {saving ? "Saving…" : "Save problem"}
               </button>
@@ -832,90 +905,85 @@ export function ProblemEditorPage() {
             <p className="tiny muted">Validation and student execution currently use SQL Server.</p>
           </section>
           <section className="teacher-validation-section">
-            <TeacherSectionTitle title="Schema" />
+            <div className="teacher-schema-heading">
+              <TeacherSectionTitle title="Schema" />
+              <span className="teacher-schema-filename">schema.sql</span>
+              <button type="button" className="button teacher-small-button teacher-open-sql-editor" onClick={() => openSqlEditor("schema")}>Open editor</button>
+            </div>
             <div className="teacher-code-section">
-              <div className="teacher-code-title">
-                <span>schema.sql</span>
-              </div>
-              <textarea
-                className="teacher-code-editor teacher-schema-editor"
-                aria-label="Schema SQL"
-                spellCheck={false}
-                value={problem.schema}
-                onChange={(event) => update("schema", event.target.value)}
-              />
+              <SqlPreview value={problem.schema} label={"Schema SQL"} onOpen={() => openSqlEditor("schema")} />
             </div>
           </section>
           <section className="teacher-validation-section teacher-test-cases-section">
-            <div className="teacher-validation-section-heading">
-              <TeacherSectionTitle title="Test cases" />
-              <button className="button teacher-small-button" type="button" onClick={() => {
-                const newTcs = [...(problem.testCases || [{seedData: problem.seedData, isHidden: false}])];
-                newTcs.push({ seedData: "", isHidden: true });
-                update("testCases", newTcs);
-              }}>
-                Add test case
-              </button>
+            <div className="teacher-dataset-heading">
+              <TeacherSectionTitle title="Test datasets" />
+              <span className="teacher-dataset-heading-label">Dataset {activeDataset + 1} /</span>
+              <div className="teacher-dataset-file-field">
+              <input className="teacher-dataset-filename" aria-label={`Dataset ${activeDataset + 1} file name`} value={(datasetNames[activeDataset] ?? `seed_${activeDataset + 1}.sql`).replace(/\.sql$/i, "")} onChange={(event) => {
+                const names = [...datasetNames];
+                names[activeDataset] = event.target.value.replace(/\.sql$/i, "") + ".sql";
+                changeDatasetNames(names);
+              }} />
+              <span className="teacher-dataset-file-extension">.sql</span>
+              </div>
+              <button type="button" className="button teacher-small-button teacher-open-sql-editor" onClick={() => openSqlEditor("seed", activeDataset)}>Open editor</button>
             </div>
-          {(problem.testCases || [{seedData: problem.seedData, isHidden: false}]).map((tc, index) => (
+            <div className="teacher-dataset-picker">
+              <label htmlFor="teacher-dataset-select">Dataset</label>
+              <select id="teacher-dataset-select" aria-label="Select test dataset" value={activeDataset} onChange={(event) => setActiveDataset(Number(event.target.value))}>
+                {(problem.testCases || [{seedData: problem.seedData, isHidden: false}]).map((_, index) => (
+                  <option key={index} value={index}>Dataset {index + 1} / {datasetNames[index] || `seed_${index + 1}.sql`}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className={"button teacher-small-button teacher-dataset-hidden-toggle" + ((problem.testCases || [{seedData: problem.seedData, isHidden: false}])[activeDataset]?.isHidden ? " is-active" : "")}
+                aria-pressed={(problem.testCases || [{seedData: problem.seedData, isHidden: false}])[activeDataset]?.isHidden ?? false}
+                onClick={() => {
+                  const datasets = [...(problem.testCases || [{seedData: problem.seedData, isHidden: false}])];
+                  datasets[activeDataset] = { ...datasets[activeDataset], isHidden: !datasets[activeDataset].isHidden };
+                  update("testCases", datasets);
+                }}
+              >
+                Hidden dataset
+              </button>
+              <button className="button teacher-small-button" type="button" onClick={() => {
+                const datasets = [...(problem.testCases || [{seedData: problem.seedData, isHidden: false}])];
+                datasets.push({seedData: "", isHidden: true});
+                setActiveDataset(datasets.length - 1);
+                update("testCases", datasets);
+              }}>Add dataset</button>
+            </div>
+          {(problem.testCases || [{seedData: problem.seedData, isHidden: false}]).map((tc, index) => index === activeDataset ? (
             <div className="teacher-code-section teacher-test-case" key={index}>
               <div className="teacher-code-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                <div>
-                  <span>Test Case {index + 1}</span>
-                  <span>/</span>
-                  <span>seed_{index + 1}.sql</span>
-                </div>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontSize: '13px', color: 'var(--muted)' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={tc.isHidden} 
-                      onChange={(e) => {
-                        const newTcs = [...(problem.testCases || [{seedData: problem.seedData, isHidden: false}])];
-                        newTcs[index] = { ...tc, isHidden: e.target.checked };
-                        update("testCases", newTcs);
-                      }} 
-                      style={{ margin: 0, width: '16px', height: '16px', flexShrink: 0, accentColor: 'var(--accent)' }}
-                    />
-                    Hidden test
-                  </label>
+
                   {index > 0 && (
                     <button type="button" className="text-button" style={{ color: 'var(--error)', padding: 0 }} onClick={() => {
                         const newTcs = [...(problem.testCases || [{seedData: problem.seedData, isHidden: false}])];
                         newTcs.splice(index, 1);
+                        const names = newTcs.map((_, nextIndex) => datasetNames[nextIndex < index ? nextIndex : nextIndex + 1] || `seed_${(nextIndex < index ? nextIndex : nextIndex + 1) + 1}.sql`);
+                        changeDatasetNames(names);
+                        setActiveDataset(Math.min(index, newTcs.length - 1));
                         update("testCases", newTcs);
                     }}>Delete</button>
                   )}
                 </div>
               </div>
-              <textarea
-                className="teacher-code-editor teacher-seed-editor"
-                aria-label={`Test case ${index + 1} SQL`}
-                spellCheck={false}
-                value={tc.seedData}
-                onChange={(event) => {
-                    const newTcs = [...(problem.testCases || [{seedData: problem.seedData, isHidden: false}])];
-                    newTcs[index] = { ...tc, seedData: event.target.value };
-                    update("testCases", newTcs);
-                }}
-              />
+              <SqlPreview value={tc.seedData} label={`Test dataset ${index + 1} SQL`} onOpen={() => openSqlEditor("seed", index)} />
             </div>
-          ))}
-            <p className="teacher-seed-summary">Seed SQL is loaded before evaluation.</p>
+          ) : null)}
+            <p className="teacher-seed-summary">Each dataset contains seed SQL loaded before checking a solution. Hidden datasets are not shown to students.</p>
           </section>
           <section className="teacher-validation-section teacher-reference-section">
-            <TeacherSectionTitle title="Reference solution" />
+            <div className="teacher-schema-heading">
+              <TeacherSectionTitle title="Reference solution" />
+              <span className="teacher-schema-filename">solution.sql</span>
+              <button type="button" className="button teacher-small-button teacher-open-sql-editor" onClick={() => openSqlEditor("referenceSolution")}>Open editor</button>
+            </div>
             <div className="teacher-code-section">
-              <div className="teacher-code-title">
-                <span>solution.sql</span>
-              </div>
-              <textarea
-                className="teacher-code-editor teacher-solution-editor"
-                aria-label="Reference solution SQL"
-                spellCheck={false}
-                value={problem.referenceSolution}
-                onChange={(event) => update("referenceSolution", event.target.value)}
-              />
+              <SqlPreview value={problem.referenceSolution} label={"Reference solution SQL"} onOpen={() => openSqlEditor("referenceSolution")} />
             </div>
           </section>
           <section className="teacher-validation-section teacher-validation-run">
@@ -954,6 +1022,40 @@ export function ProblemEditorPage() {
           </section>
         </aside>
       </div>
+      {sqlEditor && (
+        <Dialog title={sqlEditor.title} className="teacher-sql-editor-dialog" onClose={() => setSqlEditor(null)} closeOnBackdrop={false} hideClose headerActions={
+          <div className="teacher-sql-editor-actions">
+            <button type="button" className="button" onClick={() => setSqlEditor(null)}>Cancel</button>
+            <button type="button" className="button primary" onClick={applySqlEditor}>Apply changes</button>
+          </div>
+        }>
+          <div className="teacher-sql-editor-content">
+            <CodeMirror
+              className="teacher-sql-popup-codemirror"
+              aria-label={sqlEditor.title}
+              autoFocus
+              value={sqlDraft}
+              height="clamp(240px, 55dvh, 600px)"
+              extensions={[sql({ dialect: MSSQL })]}
+              basicSetup={{ lineNumbers: true, foldGutter: false }}
+              onChange={setSqlDraft}
+            />
+          </div>
+        </Dialog>
+      )}
+      {confirmDelete && (
+        <Dialog title="Delete problem" onClose={() => { if (!deleteBusy) setConfirmDelete(false); }}>
+          <div className="teacher-preview-dialog">
+            <p>Delete <strong>{problem.number} · {problem.title}</strong>?</p>
+            <p className="muted">This cannot be undone. Related submissions and saved drafts will also be removed.</p>
+            {deleteError && <p className="teacher-state-failed" role="alert">{deleteError}</p>}
+            <div className="teacher-dialog-actions">
+              <button className="button" type="button" disabled={deleteBusy} onClick={() => setConfirmDelete(false)}>Cancel</button>
+              <button className="button teacher-danger-button" type="button" disabled={deleteBusy} onClick={() => void deleteProblem()}>{deleteBusy ? "Deleting…" : "Delete"}</button>
+            </div>
+          </div>
+        </Dialog>
+      )}
       {dialog === "preview" && (
         <Dialog title="Student preview" className="teacher-student-preview-dialog" onClose={() => setDialog(null)}>
           <div className="teacher-student-preview">
