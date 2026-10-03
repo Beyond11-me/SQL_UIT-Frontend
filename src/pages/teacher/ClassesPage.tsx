@@ -225,7 +225,7 @@ export function ClassesPage() {
                   <div className="teacher-class-student-row" key={student.id}>
                     <div className="teacher-class-student-name">
                       <strong>{student.name}</strong>
-                      <small>{student.id}</small>
+                      <small>{student.email}</small>
                     </div>
                     <div className="teacher-class-student-stat"><small>{student.role}</small></div>
                   </div>

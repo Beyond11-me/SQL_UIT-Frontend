@@ -81,6 +81,16 @@ export const teacherService = {
     });
   },
 
+  async importClassMembers(classId: string, file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    return apiFetch(`/api/teacher/classes/${encodeURIComponent(classId)}/members/import`, {
+      method: "POST",
+      body: formData,
+    });
+  },
+
   async getAssignments(): Promise<any[]> {
     return apiFetch("/api/assignments");
   },

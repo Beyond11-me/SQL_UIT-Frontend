@@ -156,53 +156,109 @@ function AssignmentSubmissionsDialog({ activity, onClose }: { activity: any, onC
   const navigate = useNavigate();
   const { data: submissions, loading, error } = useLoad(() => teacherService.getAssignmentSubmissions(activity.id));
 
+  const [studentSearch, setStudentSearch] = useState("");
+  const [problemSearch, setProblemSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All statuses");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const filteredSubmissions = useMemo(() => {
+    if (!submissions) return [];
+    return submissions.filter((sub: any) => {
+      const matchStudent = sub.student.toLowerCase().includes(studentSearch.toLowerCase());
+      const matchProblem = sub.problem.toLowerCase().includes(problemSearch.toLowerCase());
+      const matchStatus = statusFilter === "All statuses" || sub.status === statusFilter;
+      return matchStudent && matchProblem && matchStatus;
+    });
+  }, [submissions, studentSearch, problemSearch, statusFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [studentSearch, problemSearch, statusFilter]);
+
+  const totalPages = Math.ceil(filteredSubmissions.length / itemsPerPage) || 1;
+  const paginatedSubmissions = filteredSubmissions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   return (
     <Dialog title={activity.title} onClose={onClose}>
-      <div className="teacher-preview-dialog" style={{ width: 600, maxWidth: "100%" }}>
+      <div className="teacher-preview-dialog" style={{ width: 800, maxWidth: "100%" }}>
         <p>{activity.isContest ? "Contest" : "Assignment"} · {activity.classes}</p>
         <p>{activity.submitted} submitted · {activity.average} average · {activity.awaiting} awaiting review</p>
         
         {loading && <Loading label="Loading submissions…" />}
         {error && <p className="teacher-state-error">Could not load submissions: {error}</p>}
         {submissions && (
-          <div className="teacher-table-scroll" style={{ maxHeight: 300, margin: "1rem 0" }}>
-            <table className="teacher-table">
-              <thead>
-                <tr>
-                  <th>STUDENT</th>
-                  <th>PROBLEM</th>
-                  <th>SCORE</th>
-                  <th>STATUS</th>
-                  <th>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {submissions.map((sub: any) => (
-                  <tr key={sub.id}>
-                    <td>{sub.student}</td>
-                    <td>{sub.problem}</td>
-                    <td>{sub.score}</td>
-                    <td className={
-                      sub.status === "Needs review" || sub.status === "Partial" ? "teacher-state-warning" : 
-                      sub.status === "Accepted" ? "teacher-state-success" : 
-                      "teacher-state-failed"
-                    }>{sub.status}</td>
-                    <td>
-                      <button className="button teacher-small-button" type="button" onClick={() => navigate(`/teacher/results/review/${sub.id}`)}>Review</button>
-                    </td>
-                  </tr>
-                ))}
-                {submissions.length === 0 && (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem", marginTop: "1.5rem", marginBottom: "0.5rem" }}>
+              <div>
+                <label className="teacher-label" style={{ fontSize: "0.75rem", display: "block", marginBottom: "0.25rem" }}>STUDENT</label>
+                <input type="text" className="teacher-input" style={{ width: "100%", boxSizing: "border-box" }} placeholder="Search student..." value={studentSearch} onChange={e => setStudentSearch(e.target.value)} />
+              </div>
+              <div>
+                <label className="teacher-label" style={{ fontSize: "0.75rem", display: "block", marginBottom: "0.25rem" }}>PROBLEM</label>
+                <input type="text" className="teacher-input" style={{ width: "100%", boxSizing: "border-box" }} placeholder="Search problem..." value={problemSearch} onChange={e => setProblemSearch(e.target.value)} />
+              </div>
+              <div>
+                <label className="teacher-label" style={{ fontSize: "0.75rem", display: "block", marginBottom: "0.25rem" }}>STATUS</label>
+                <select className="teacher-input" style={{ width: "100%", boxSizing: "border-box", padding: "0.375rem" }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+                  <option>All statuses</option>
+                  <option>Needs review</option>
+                  <option>Accepted</option>
+                  <option>Partial</option>
+                  <option>Failed</option>
+                </select>
+              </div>
+            </div>
+            
+            <div className="teacher-table-scroll" style={{ maxHeight: 350, margin: "1rem 0" }}>
+              <table className="teacher-table">
+                <thead>
                   <tr>
-                    <td colSpan={5} className="teacher-empty-row">No submissions yet.</td>
+                    <th>STUDENT</th>
+                    <th>PROBLEM</th>
+                    <th>SCORE</th>
+                    <th>STATUS</th>
+                    <th>ACTIONS</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {paginatedSubmissions.map((sub: any) => (
+                    <tr key={sub.id}>
+                      <td>{sub.student}</td>
+                      <td>{sub.problem}</td>
+                      <td>{sub.score}</td>
+                      <td className={
+                        sub.status === "Needs review" || sub.status === "Partial" ? "teacher-state-warning" : 
+                        sub.status === "Accepted" ? "teacher-state-success" : 
+                        "teacher-state-failed"
+                      }>{sub.status}</td>
+                      <td>
+                        <button className="button teacher-small-button" type="button" onClick={() => navigate(`/teacher/results/review/${sub.id}`)}>Review</button>
+                      </td>
+                    </tr>
+                  ))}
+                  {paginatedSubmissions.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="teacher-empty-row">No submissions match these filters.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem" }}>
+              <small className="muted">
+                Showing {filteredSubmissions.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, filteredSubmissions.length)} of {filteredSubmissions.length} results
+              </small>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button className="button teacher-small-button" type="button" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>Previous</button>
+                <button className="button teacher-small-button" type="button" disabled={currentPage === totalPages || totalPages === 0} onClick={() => setCurrentPage(p => p + 1)}>Next</button>
+              </div>
+            </div>
+          </>
         )}
         
-        <div className="teacher-dialog-actions">
+        <div className="teacher-dialog-actions" style={{ marginTop: "1.5rem" }}>
           <button className="button" type="button" onClick={onClose}>Close</button>
         </div>
       </div>
