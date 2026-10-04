@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Dialog } from "./ui";
+import { resolveContestBannerUrl } from "../utils/contestBanner";
 
 export type BannerCrop = { x: number; y: number; zoom: number };
 export const defaultBannerCrop: BannerCrop = { x: 0.5, y: 0.5, zoom: 1 };
@@ -54,7 +55,8 @@ export function ContestBannerCrop({ sourceUrl, initialCrop, onClose, onApply }: 
       setDimensions({ width: image.naturalWidth, height: image.naturalHeight });
     };
     image.onerror = () => setError("Could not load this banner image.");
-    image.src = sourceUrl;
+    if (!sourceUrl.startsWith("blob:") && !sourceUrl.startsWith("data:")) image.crossOrigin = "anonymous";
+    image.src = resolveContestBannerUrl(sourceUrl) || sourceUrl;
     return () => { image.onload = null; image.onerror = null; };
   }, [sourceUrl]);
 

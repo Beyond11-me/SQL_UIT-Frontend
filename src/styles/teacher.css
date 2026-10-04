@@ -597,3 +597,46 @@
   .teacher-review-history { margin-top:14px; }
   .teacher-add-problem-list,.teacher-manage-dialog { min-width:0; }
 }
+
+.teacher-field .teacher-datetime-input { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(88px, .72fr) 34px; align-items: center; min-height: 47px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); }
+.teacher-field .teacher-datetime-input > input[type="text"],
+.teacher-field .teacher-datetime-input > input[type="time"] { width: 100%; min-width: 0; min-height: 42px; padding: 8px 10px; border: 0; background: transparent; font-size: 11px; }
+.teacher-field .teacher-datetime-input > input[type="time"] { border-left: 1px solid var(--border-subtle); }
+.teacher-date-picker-button { display: grid; place-items: center; width: 32px; height: 34px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--muted); cursor: pointer; }
+.teacher-date-picker-button:hover { background: var(--subtle); color: var(--accent); }
+.teacher-native-date-picker { position: absolute !important; right: 30px; width: 1px !important; height: 1px !important; min-height: 1px !important; padding: 0 !important; opacity: 0; pointer-events: none; }
+
+.teacher-publish-issues { margin: 10px 0; padding: 10px 12px; border: 1px solid #efb3b3; border-radius: 5px; background: #fff7f7; color: var(--danger); font-size: 10px; line-height: 16px; }
+.teacher-publish-issues ul { margin: 6px 0 0; padding-left: 18px; }
+.teacher-publish-issues li + li { margin-top: 2px; }
+
+.teacher-field .teacher-datetime-input { position: relative; display: grid; grid-template-columns: minmax(86px, 1.2fr) minmax(28px, .42fr) 8px minmax(28px, .42fr) auto 30px; align-items: center; gap: 2px; min-height: 47px; padding: 2px 5px 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); }
+.teacher-field .teacher-datetime-input > input[type="text"] { width: 100%; min-width: 0; min-height: 36px; padding: 6px 4px; border: 0; background: transparent; color: var(--text); font-size: 11px; text-align: center; }
+.teacher-field .teacher-datetime-input > input:first-child { text-align: left; }
+.teacher-time-separator { color: var(--muted); text-align: center; }
+.teacher-ampm-toggle { display: flex; align-items: center; padding: 2px; border: 1px solid var(--border-subtle); border-radius: 5px; }
+.teacher-ampm-toggle button { min-width: 29px; padding: 4px 5px; border: 0; border-radius: 3px; background: transparent; color: var(--muted); font-size: 9px; cursor: pointer; }
+.teacher-ampm-toggle button.is-active { background: var(--accent); color: #fff; }
+
+.teacher-field .teacher-datetime-input { display: flex; justify-content: flex-start; gap: 8px; min-height: 47px; padding: 3px 6px 3px 8px; }
+.teacher-field .teacher-date-segments { display: flex; flex: 0 0 142px; align-items: center; justify-content: flex-start; gap: 2px; min-width: 0; }
+.teacher-field .teacher-date-segments input { width: 28px; min-width: 0; min-height: 34px; padding: 4px 0; border: 0; background: transparent; color: var(--text); font-size: 11px; text-align: center; }
+.teacher-field .teacher-date-segments input:last-child { width: 42px; }
+.teacher-date-segments span { color: var(--muted); font-size: 11px; }
+.teacher-field .teacher-time-fields { display: flex; flex: 0 0 auto; align-items: center; gap: 1px; }
+.teacher-field .teacher-time-fields > input { width: 24px; min-width: 0; min-height: 34px; padding: 4px 0; border: 0; background: transparent; color: var(--text); font-size: 11px; text-align: center; }
+.teacher-field .teacher-time-fields .teacher-ampm-toggle { margin-left: 4px; }
+.teacher-field .teacher-ampm-toggle { gap: 0; padding: 1px; }
+.teacher-field .teacher-ampm-toggle button { min-width: 24px; padding: 4px 3px; font-size: 8px; }
+.teacher-field .teacher-date-picker-button { flex: 0 0 28px; width: 28px; margin-left: auto; }
+
+/* Override the builder's generic full-width input rule for segmented date and time controls. */
+.teacher-builder-sidebar .teacher-field .teacher-datetime-input { min-width: 0; overflow: hidden; box-sizing: border-box; }
+.teacher-builder-sidebar .teacher-field .teacher-date-segments { flex: 0 0 124px; width: 124px; min-width: 124px; }
+.teacher-builder-sidebar .teacher-field .teacher-date-segments > input { flex: 0 0 24px; width: 24px; min-width: 24px; max-width: 24px; min-height: 34px; padding: 4px 0; box-sizing: border-box; }
+.teacher-builder-sidebar .teacher-field .teacher-date-segments > input:last-child { flex-basis: 42px; width: 42px; min-width: 42px; max-width: 42px; }
+.teacher-builder-sidebar .teacher-field .teacher-date-segments > span { flex: 0 0 7px; width: 7px; text-align: center; }
+.teacher-builder-sidebar .teacher-field .teacher-time-fields { flex: 0 0 auto; min-width: max-content; white-space: nowrap; }
+.teacher-builder-sidebar .teacher-field .teacher-time-fields > input { flex: 0 0 24px; width: 24px; min-width: 24px; max-width: 24px; min-height: 34px; padding: 4px 0; box-sizing: border-box; }
+.teacher-builder-sidebar .teacher-field .teacher-time-fields .teacher-ampm-toggle { flex: 0 0 auto; }
+.teacher-builder-sidebar .teacher-field .teacher-date-picker-button { flex: 0 0 28px; width: 28px; min-width: 28px; padding: 0; }

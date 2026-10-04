@@ -646,7 +646,8 @@ export function ProblemEditorPage() {
           </section>
           <section className="teacher-problem-details-section teacher-problem-topics-section">
             <TeacherSectionTitle title="Topics & visibility" />
-          <TeacherField label="TOPICS">
+          <div className="teacher-field">
+            <span>TOPICS</span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '4px' }}>
               {[...PROBLEM_TOPIC_OPTIONS, "OTHER"].map(t => {
                 const isOther = t === "OTHER";
@@ -694,7 +695,7 @@ export function ProblemEditorPage() {
                 )
               })}
             </div>
-          </TeacherField>
+          </div>
           {otherTopicEnabled && (
             <div className="teacher-custom-topic">
               <TeacherField label="OTHER TOPIC">

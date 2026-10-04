@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { CalendarDays } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Dialog, Loading } from "../../components/ui";
 import { teacherService } from "../../services/teacherService";
@@ -8,6 +9,7 @@ import { readContestMarkdown } from "../../utils/contestMarkdown";
 import { ContestDetailView } from "../student/ContestDetailView";
 import type { Contest } from "../../data/models";
 import { ContestBannerCrop, defaultBannerCrop, type BannerCrop } from "../../components/ContestBannerCrop";
+import { resolveContestBannerUrl } from "../../utils/contestBanner";
 
 type BuilderProblem = { id: string; points: number };
 type BuilderDraft = {
@@ -69,6 +71,150 @@ function previewDate(value: string) {
   return Number.isFinite(date.getTime())
     ? date.toLocaleString(undefined, { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
     : "Not set";
+}
+
+function formatDateForInput(isoDate: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : "";
+}
+
+function parseDateFromInput(displayDate: string) {
+  const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(displayDate.trim());
+  if (!match) return "";
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return "";
+  return `${year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`;
+}
+
+function DateTimeInput({ value, onChange, label }: { value: string; onChange: (value: string) => void; label: string }) {
+  const calendarRef = useRef<HTMLInputElement>(null);
+  const lastCommittedValue = useRef(value);
+  const [dayText, setDayText] = useState(() => value.slice(8, 10));
+  const [monthText, setMonthText] = useState(() => value.slice(5, 7));
+  const [yearText, setYearText] = useState(() => value.slice(0, 4));
+  const initialHour = Number(value.slice(11, 13));
+  const [hourText, setHourText] = useState(value ? String((initialHour + 11) % 12 + 1).padStart(2, "0") : "12");
+  const [minuteText, setMinuteText] = useState(value.slice(14, 16) || "00");
+  const [period, setPeriod] = useState<"AM" | "PM">(initialHour >= 12 ? "PM" : "AM");
+
+  useEffect(() => {
+    if (value === lastCommittedValue.current) return;
+    lastCommittedValue.current = value;
+    setDayText(value.slice(8, 10));
+    setMonthText(value.slice(5, 7));
+    setYearText(value.slice(0, 4));
+    const hour24 = Number(value.slice(11, 13));
+    setHourText(value ? String((hour24 + 11) % 12 + 1).padStart(2, "0") : "12");
+    setMinuteText(value.slice(14, 16) || "00");
+    setPeriod(hour24 >= 12 ? "PM" : "AM");
+  }, [value]);
+
+  const isoDate = value.slice(0, 10);
+  const parsedDate = parseDateFromInput(`${dayText}/${monthText}/${yearText}`);
+
+  function commit(next: string) {
+    lastCommittedValue.current = next;
+    onChange(next);
+  }
+
+  function commitDateAndTime(date: string, hour = hourText, minute = minuteText, meridiem = period) {
+    if (!date || !/^(?:[1-9]|1[0-2])$/.test(hour) || !/^(?:[0-5]?\d)$/.test(minute)) {
+      commit("");
+      return;
+    }
+    const hour12 = Number(hour);
+    const hour24 = hour12 % 12 + (meridiem === "PM" ? 12 : 0);
+    commit(`${date}T${String(hour24).padStart(2, "0")}:${String(Number(minute)).padStart(2, "0")}`);
+  }
+
+  function updateDateSegment(part: "day" | "month" | "year", raw: string) {
+    const digits = raw.replace(/\D/g, "").slice(0, part === "year" ? 4 : 2);
+    const nextDay = part === "day" ? digits : dayText;
+    const nextMonth = part === "month" ? digits : monthText;
+    const nextYear = part === "year" ? digits : yearText;
+    if (part === "day") setDayText(digits);
+    if (part === "month") setMonthText(digits);
+    if (part === "year") setYearText(digits);
+    const date = parseDateFromInput(`${nextDay}/${nextMonth}/${nextYear}`);
+    if (date) commitDateAndTime(date);
+    else commit("");
+  }
+
+  function normalizeDateSegment(part: "day" | "month") {
+    const valueToNormalize = part === "day" ? dayText : monthText;
+    if (!valueToNormalize) return;
+    const normalized = valueToNormalize.padStart(2, "0");
+    if (part === "day") setDayText(normalized);
+    else setMonthText(normalized);
+    const date = parseDateFromInput(`${part === "day" ? normalized : dayText}/${part === "month" ? normalized : monthText}/${yearText}`);
+    if (date) commitDateAndTime(date);
+  }
+
+  function updateDate(date: string) {
+    const [year, month, day] = date.split("-");
+    setDayText(day || "");
+    setMonthText(month || "");
+    setYearText(year || "");
+    commitDateAndTime(date);
+  }
+
+  function updateHour(next: string) {
+    const digits = next.replace(/\D/g, "").slice(0, 2);
+    setHourText(digits);
+    if (parsedDate && digits && Number(digits) >= 1 && Number(digits) <= 12) commitDateAndTime(parsedDate, digits);
+    else commit("");
+  }
+
+  function updateMinute(next: string) {
+    const digits = next.replace(/\D/g, "").slice(0, 2);
+    setMinuteText(digits);
+    if (parsedDate && digits && Number(digits) <= 59) commitDateAndTime(parsedDate, hourText, digits);
+    else commit("");
+  }
+
+  function updatePeriod(next: "AM" | "PM") {
+    setPeriod(next);
+    if (parsedDate) commitDateAndTime(parsedDate, hourText, minuteText, next);
+  }
+
+  return <div className="teacher-datetime-input">
+    <div className="teacher-date-segments" aria-label={`${label} date, day month year`}>
+      <input type="text" inputMode="numeric" maxLength={2} placeholder="DD" aria-label={`${label} day`}
+        value={dayText} onChange={(event) => updateDateSegment("day", event.target.value)}
+        onBlur={() => normalizeDateSegment("day")} />
+      <span>/</span>
+      <input type="text" inputMode="numeric" maxLength={2} placeholder="MM" aria-label={`${label} month`}
+        value={monthText} onChange={(event) => updateDateSegment("month", event.target.value)}
+        onBlur={() => normalizeDateSegment("month")} />
+      <span>/</span>
+      <input type="text" inputMode="numeric" maxLength={4} placeholder="YYYY" aria-label={`${label} year`}
+        value={yearText} onChange={(event) => updateDateSegment("year", event.target.value)} />
+    </div>
+    <div className="teacher-time-fields">
+      <input type="text" inputMode="numeric" maxLength={2} placeholder="hh" aria-label={`${label} hour`}
+        value={hourText} onChange={(event) => updateHour(event.target.value)}
+        onBlur={() => { if (hourText && Number(hourText) >= 1 && Number(hourText) <= 12) setHourText(String(Number(hourText)).padStart(2, "0")); }} />
+      <span className="teacher-time-separator">:</span>
+      <input type="text" inputMode="numeric" maxLength={2} placeholder="mm" aria-label={`${label} minute`}
+        value={minuteText} onChange={(event) => updateMinute(event.target.value)}
+        onBlur={() => { if (minuteText && Number(minuteText) <= 59) setMinuteText(String(Number(minuteText)).padStart(2, "0")); }} />
+      <div className="teacher-ampm-toggle" role="group" aria-label={`${label} AM or PM`}>
+        {(["AM", "PM"] as const).map((item) => <button key={item} type="button" className={period === item ? "is-active" : ""}
+          aria-pressed={period === item} onClick={() => updatePeriod(item)}>{item}</button>)}
+      </div>
+    </div>
+    <button type="button" className="teacher-date-picker-button" aria-label={`Choose ${label.toLowerCase()} date`} onClick={() => {
+      const input = calendarRef.current as (HTMLInputElement & { showPicker?: () => void }) | null;
+      if (!input) return;
+      if (input.showPicker) input.showPicker();
+      else input.click();
+    }}><CalendarDays size={16} /></button>
+    <input ref={calendarRef} className="teacher-native-date-picker" type="date" tabIndex={-1} aria-hidden="true" value={isoDate}
+      onChange={(event) => updateDate(event.target.value)} />
+  </div>;
 }
 
 function ActivityPreview({ draft, contest, classes, problems }: {
@@ -163,6 +309,7 @@ function BuilderPage({ contest }: { contest: boolean }) {
   const [saveBusy, setSaveBusy] = useState(false);
   const [saveState, setSaveState] = useState("");
   const [alertText, setAlertText] = useState("");
+  const [showPublishIssues, setShowPublishIssues] = useState(false);
   const [addProblemOpen, setAddProblemOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [descriptionMode, setDescriptionMode] = useState<"write" | "import">("write");
@@ -253,6 +400,7 @@ function BuilderPage({ contest }: { contest: boolean }) {
     setDraft((current) => current ? ({ ...current, [field]: value }) : null);
     setSaveState("Unsaved changes");
     setAlertText("");
+    setShowPublishIssues(false);
   }
 
   async function importMarkdown(file?: File) {
@@ -301,7 +449,7 @@ function BuilderPage({ contest }: { contest: boolean }) {
     } catch {
       setCropInitial(defaultBannerCrop);
     }
-    setCropSource(draft.bannerSourceUrl);
+    setCropSource(resolveContestBannerUrl(draft.bannerSourceUrl) || draft.bannerSourceUrl);
   }
 
   async function applyBanner(banner: Blob, source: Blob, crop: BannerCrop) {
@@ -316,24 +464,33 @@ function BuilderPage({ contest }: { contest: boolean }) {
   const scheduleValid =
     !!draft.opens && !!draft.closes && new Date(draft.opens) < new Date(draft.closes);
   const durationMinutes = scheduleValid ? Math.round((new Date(draft.closes).getTime() - new Date(draft.opens).getTime()) / 60000) : 0;
-  const readyToPublish =
-    !!draft.title.trim() &&
-    (!contest || draft.audienceType === "all_students" || draft.classIds.length > 0) &&
-    (contest || draft.classIds.length > 0) &&
-    (!contest || (!!draft.shortDescription.trim() && !!draft.description.trim() && !!draft.rules.trim())) &&
-    draft.problems.length > 0 &&
-    draft.problems.every((item) => item.points > 0) &&
-    scheduleValid;
+  function getPublishIssues() {
+    const issues: string[] = [];
+    if (!draft.title.trim()) issues.push("Enter a title.");
+    if (!contest && draft.classIds.length === 0) issues.push("Select at least one class.");
+    if (contest && draft.audienceType === "classes" && draft.classIds.length === 0) issues.push("Select at least one class or choose All students.");
+    if (contest && !draft.shortDescription.trim()) issues.push("Add a short description.");
+    if (contest && !draft.description.trim()) issues.push("Add a contest description.");
+    if (contest && !draft.rules.trim()) issues.push("Add contest rules.");
+    if (draft.problems.length === 0) issues.push("Add at least one problem.");
+    if (draft.problems.some((item) => !Number.isFinite(item.points) || item.points <= 0)) issues.push("Set points greater than zero for every problem.");
+    if (!draft.opens || !Number.isFinite(new Date(draft.opens).getTime())) issues.push(contest ? "Enter a valid start date and time." : "Enter a valid opening date and time.");
+    if (!draft.closes || !Number.isFinite(new Date(draft.closes).getTime())) issues.push(contest ? "Enter a valid end date and time." : "Enter a valid due date and time.");
+    if (draft.opens && draft.closes && Number.isFinite(new Date(draft.opens).getTime()) && Number.isFinite(new Date(draft.closes).getTime()) && new Date(draft.opens) >= new Date(draft.closes)) {
+      issues.push("The end date and time must be after the start date and time.");
+    }
+    return issues;
+  }
+  const publishIssues = getPublishIssues();
+  const readyToPublish = publishIssues.length === 0;
 
   async function saveToServer(isPublished: boolean) {
     if (saveBusy) return;
-    if (!draft || !draft.title.trim() || !scheduleValid) {
-      setAlertText("Add a title and valid start and end times before saving.");
-      return;
-    }
-    if (isPublished && !readyToPublish) {
-      setAlertText(contest ? "Complete the audience, descriptions, rules, problems, and schedule before publishing." : "Select a class, add scored problems, and check the schedule before publishing.");
-      return;
+    if (!draft) return;
+    if (isPublished) {
+      setAlertText("");
+      setShowPublishIssues(true);
+      if (!readyToPublish) return;
     }
     
     setSaveBusy(true);
@@ -367,6 +524,7 @@ function BuilderPage({ contest }: { contest: boolean }) {
       setDraft({ ...draft!, published: isPublished });
       setSaveState("All changes saved");
       setAlertText(isPublished ? "Successfully published." : "Draft saved successfully.");
+      setShowPublishIssues(false);
       
       if (isNew) {
         navigate(contest ? "/teacher/contests" : "/teacher/assignments");
@@ -440,7 +598,7 @@ function BuilderPage({ contest }: { contest: boolean }) {
                 <input ref={bannerFileInput} className="teacher-banner-file-input" type="file" accept="image/jpeg,image/png,image/webp"
                   onChange={(event) => { chooseBanner(event.target.files?.[0]); event.target.value = ""; }} />
                 <div className={`teacher-banner-preview${draft.bannerUrl ? " has-image" : ""}`}
-                  style={draft.bannerUrl ? { backgroundImage: `linear-gradient(90deg, rgba(14, 14, 51, .82), rgba(14, 14, 51, .48)), url("${draft.bannerUrl}")` } : undefined}>
+                  style={draft.bannerUrl ? { backgroundImage: `linear-gradient(90deg, rgba(14, 14, 51, .82), rgba(14, 14, 51, .48)), url("${resolveContestBannerUrl(draft.bannerUrl)}")` } : undefined}>
                   <span>{draft.bannerUrl ? "Current contest banner" : "Default contest banner"}</span>
                 </div>
                 <div className="teacher-banner-actions">
@@ -524,18 +682,10 @@ function BuilderPage({ contest }: { contest: boolean }) {
           <div className="teacher-schedule-section">
             <TeacherSectionTitle title="Schedule" />
             <TeacherField label={contest ? "STARTS" : "OPENS"}>
-              <input
-                type="datetime-local"
-                value={draft.opens}
-                onChange={(event) => update("opens", event.target.value)}
-              />
+              <DateTimeInput label={contest ? "Starts" : "Opens"} value={draft.opens} onChange={(value) => update("opens", value)} />
             </TeacherField>
             <TeacherField label={contest ? "ENDS" : "DUE DATE"}>
-              <input
-                type="datetime-local"
-                value={draft.closes}
-                onChange={(event) => update("closes", event.target.value)}
-              />
+              <DateTimeInput label={contest ? "Ends" : "Due date"} value={draft.closes} onChange={(value) => update("closes", value)} />
             </TeacherField>
             {contest && durationMinutes > 0 && <p className="teacher-timezone">Duration · {durationMinutes} min</p>}
           </div>
@@ -566,13 +716,17 @@ function BuilderPage({ contest }: { contest: boolean }) {
             ))}
           </div>
           {alertText && <p className="teacher-form-message" role="status">{alertText}</p>}
+          {showPublishIssues && publishIssues.length > 0 && <div className="teacher-publish-issues" role="alert" aria-live="polite">
+            <strong>Cannot publish yet. Please fix:</strong>
+            <ul>{publishIssues.map((issue) => <li key={issue}>{issue}</li>)}</ul>
+          </div>}
           <p className="teacher-builder-save-state tiny muted">{saveState}</p>
           <div className="teacher-builder-actions">
             <button className="button" type="button" onClick={() => setPreviewOpen(true)}>Preview {contest ? "contest" : "assignment"}</button>
-            <button className="button" type="button" onClick={saveDraft} disabled={saveBusy || !draft.title.trim() || !scheduleValid}>
+            <button className="button" type="button" onClick={saveDraft} disabled={saveBusy}>
               {saveBusy ? "Saving…" : "Save draft"}
             </button>
-            <button className="button primary" type="button" onClick={publishDraft} disabled={saveBusy || !readyToPublish}>Publish</button>
+            <button className="button primary" type="button" onClick={publishDraft} disabled={saveBusy}>Publish</button>
           </div>
         </aside>
       </div>

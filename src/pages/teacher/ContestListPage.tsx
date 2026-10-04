@@ -66,7 +66,7 @@ export function ContestsListPage() {
     </div>
     {loading ? <Loading label="Loading contests…" /> : error ? <ErrorState title="Could not load contests" message={error} onRetry={() => window.location.reload()} /> : !contests.length ? <Empty title="No contests yet">Create a timed contest for selected classes or all students.</Empty> : <div className="teacher-list-detail-layout">
         <div className="teacher-list-detail-main"><div ref={tableScrollRef} className="teacher-table-scroll teacher-list-table-scroll sticky-list-table-wrap"><table className="teacher-table teacher-contest-list-table sticky-list-table"><thead><tr><th>CONTEST</th><th>AUDIENCE</th><th>STARTS</th><th>ENDS</th><th>DURATION</th><th>STATUS</th></tr></thead><tbody>
-          {pageContests.map(item => <tr key={item.id} className={selected?.id === item.id ? "is-selected" : ""}>
+          {pageContests.map(item => <tr key={item.id} className={selected?.id === item.id ? "is-selected" : ""} onClick={() => setSelectedId(item.id)}>
             <td data-label="CONTEST"><button type="button" className="teacher-selectable-row-title" onClick={() => setSelectedId(item.id)}>{item.title}</button></td>
             <td data-label="AUDIENCE">{item.classes}</td>
             <td data-label="STARTS">{tableDateTime(item.opens)}</td>

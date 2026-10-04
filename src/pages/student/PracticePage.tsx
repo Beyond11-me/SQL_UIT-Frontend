@@ -2,11 +2,35 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { studentApi } from "../../services/studentApi";
 import { useLoad } from "../../components/useLoad";
+import { ProblemMarkdown } from "../../components/ProblemMarkdown";
 import { Dialog, Empty, ErrorState, Loading, Status } from "../../components/ui";
 import {
   PracticeActivity,
   PracticeTrending,
 } from "../../components/PracticeSidebar";
+
+type PracticeProblemSummary = { id: string; number: string | number; title: string; topic?: string; topics?: string[]; difficulty: string; progress: string };
+
+function PracticeProblemDetails({ problem }: { problem: PracticeProblemSummary }) {
+  const { data, loading, error } = useLoad(() => studentApi.getProblem(problem.id), [problem.id]);
+  const topics = Array.isArray(problem.topics) && problem.topics.length ? problem.topics.join(" · ") : problem.topic || "—";
+  return <div className="practice-problem-details-layout">
+    <div className="practice-sidebar-problem-scroll">
+      <article className="practice-selected-problem">
+        <span className="practice-detail-eyebrow">PROBLEM DETAILS</span>
+        <h2>{problem.number} · {problem.title}</h2>
+        <div className="practice-selected-meta"><Status value={problem.progress || "Not started"} /><span>{problem.difficulty}</span></div>
+        <dl className="practice-selected-facts"><div><dt>Topic</dt><dd>{topics}</dd></div></dl>
+        {loading ? <p className="muted" role="status">Loading problem information…</p> : error ? <p className="muted" role="alert">Could not load the full problem description.</p> : <>
+          {data?.description && <section className="practice-selected-description"><h3>About this problem</h3><ProblemMarkdown>{data.description}</ProblemMarkdown></section>}
+          {data?.requirements && <section className="practice-selected-description"><h3>Requirements</h3><ProblemMarkdown>{data.requirements}</ProblemMarkdown></section>}
+          {data?.databaseType && <p className="muted">Database · {data.databaseType}</p>}
+        </>}
+      </article>
+    </div>
+    <Link className="button primary practice-solve-button" to={`/workspace/${encodeURIComponent(problem.id)}`}>Solve problem →</Link>
+  </div>;
+}
 
 const PAGE_SIZE = 15;
 
@@ -39,6 +63,9 @@ export function PracticePage() {
     progress: "",
   });
   const [page, setPage] = useState(1);
+  const [selectedProblemId, setSelectedProblemId] = useState("");
+  const [sidebarTab, setSidebarTab] = useState<"activity" | "problem">("activity");
+  const activityMonth = new Date().toLocaleString("default", { month: "long" });
   const resultsStartRef = useRef<HTMLDivElement | null>(null);
 
   const { data: prefData, loading: prefLoading, error: prefError } = useLoad(
@@ -78,9 +105,12 @@ export function PracticePage() {
   const currentPage = Math.min(page, pageCount);
   const firstIndex = (currentPage - 1) * PAGE_SIZE;
   const pageProblems = data.slice(firstIndex, firstIndex + PAGE_SIZE);
+  const selectedProblem = pageProblems.find((problem) => problem.id === selectedProblemId);
 
   useEffect(() => {
     setPage(1);
+    setSelectedProblemId("");
+    setSidebarTab("activity");
     resultsStartRef.current?.scrollTo({ top: 0 });
   }, [search, topic, difficulty, progress, favoritesOnly]);
   function goToPage(nextPage: number) {
@@ -208,10 +238,15 @@ export function PracticePage() {
                   <span>Status</span>
                 </div>
                 {pageProblems.map((p) => (
-                  <Link
-                    className="problem-row"
+                  <button
+                    type="button"
+                    className={`problem-row${selectedProblemId === p.id ? " is-selected" : ""}`}
                     key={p.id}
-                    to={"/workspace/" + p.id}
+                    aria-pressed={selectedProblemId === p.id}
+                    onClick={() => {
+                      setSelectedProblemId(p.id);
+                      setSidebarTab("problem");
+                    }}
                   >
                     <span className="problem-number muted">{p.number}</span>
                     <b>{p.title}</b>
@@ -224,7 +259,7 @@ export function PracticePage() {
                       </span>
                     </div>
                     <Status value={p.progress} />
-                  </Link>
+                  </button>
                 ))}
 
               </>
@@ -248,12 +283,29 @@ export function PracticePage() {
           </div>
         </div>
         <aside className="practice-sidebar">
-          {dashLoading ? <Loading label="Loading activity…" /> : dashError ? <p role="alert">Could not load activity.</p> : <PracticeActivity submissions={dashData?.submissionsPerDay || []} />}
-          <PracticeTrending
-            favoriteProblems={favoriteProblems}
-            favoriteLoading={prefLoading || catalogLoading}
-            favoriteError={!!prefError || !!catalogError}
-          />
+          <div className="practice-sidebar-heading">
+            <h3>{sidebarTab === "activity" ? `${activityMonth} activity` : "Problem details"}</h3>
+            <span className="practice-sidebar-tabs" role="tablist" aria-label="Practice sidebar">
+              <span className={`practice-sidebar-tab-indicator${sidebarTab === "problem" ? " is-problem" : ""}`} aria-hidden="true" />
+              <button type="button" role="tab" id="practice-activity-tab" aria-selected={sidebarTab === "activity"} aria-controls="practice-activity-panel" onClick={() => setSidebarTab("activity")}>Activity</button>
+              <button type="button" role="tab" id="practice-problem-tab" aria-selected={sidebarTab === "problem"} aria-controls="practice-problem-panel" disabled={!selectedProblem} onClick={() => selectedProblem && setSidebarTab("problem")}>Problem</button>
+            </span>
+          </div>
+          <div className="practice-sidebar-views">
+            <div id="practice-activity-panel" role="tabpanel" aria-labelledby="practice-activity-tab" className="practice-sidebar-view practice-sidebar-activity" hidden={sidebarTab !== "activity"}>
+              <PracticeActivity submissions={dashData?.submissionsPerDay || []} />
+              {dashLoading && <Loading label="Loading activity…" />}
+              {dashError && <p role="alert">Could not load activity.</p>}
+              <PracticeTrending
+                favoriteProblems={favoriteProblems}
+                favoriteLoading={prefLoading || catalogLoading}
+                favoriteError={!!prefError || !!catalogError}
+              />
+            </div>
+            <div id="practice-problem-panel" role="tabpanel" aria-labelledby="practice-problem-tab" className="practice-sidebar-view practice-sidebar-problem" hidden={sidebarTab !== "problem"}>
+              {selectedProblem ? <PracticeProblemDetails key={selectedProblem.id} problem={selectedProblem} /> : <p className="muted">Choose a problem from the table to see its details here.</p>}
+            </div>
+          </div>
         </aside>
       </div>
       {filterDialog && (

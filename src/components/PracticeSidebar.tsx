@@ -55,7 +55,6 @@ export function PracticeActivity({ submissions = [] }: { submissions?: DailySubm
     <section className="practice-activity">
       <h3>
         <span>{currentMonth} activity</span>
-        <small>{totalSubmissions} submissions · {activeDays} active days</small>
       </h3>
       <div
         className="practice-calendar"
@@ -91,6 +90,7 @@ export function PracticeActivity({ submissions = [] }: { submissions?: DailySubm
           <i className={"calendar-level-" + i} key={i} />
         ))}
         <span>More</span>
+        <small className="practice-activity-summary">{totalSubmissions} submissions · {activeDays} active days</small>
       </div>
       <div className="practice-mobile-heatmap">
         <Activity small submissions={submissions} />
