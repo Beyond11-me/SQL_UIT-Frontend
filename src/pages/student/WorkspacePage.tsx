@@ -12,6 +12,10 @@ import { sql, MSSQL } from "@codemirror/lang-sql";
 import { EditorView } from "@codemirror/view";
 import { X, Star, RotateCcw, Maximize2, Minimize2, Braces } from "lucide-react";
 import { indentRange } from "@codemirror/language";
+import { useAuth } from "../../context/AuthContext";
+import { WorkspaceTools } from "../../components/WorkspaceTools";
+import { clamp as clampPaneSize, defaults, readLayouts, workspaceKey, type Layout, type PaneSizes } from "../../utils/workspacePreferences";
+import "../../styles/workspace.css";
 import { AppHeader } from "../../components/AppHeader";
 import { DataGrid, Dialog, Empty, Loading, Status } from "../../components/ui";
 import { ProblemMarkdown } from "../../components/ProblemMarkdown";
@@ -24,36 +28,11 @@ import { parseDatabaseSchema } from "../../utils/parseDatabaseSchema";
 import { parseSeedData } from "../../utils/parseSeedData";
 import { AiChatPanel } from "../../components/AiChatPanel";
 
-const WORKSPACE_LAYOUT_KEY = "sql-practice:workspace-layout";
-const DEFAULT_PROBLEM_WIDTH = 34;
 const DEFAULT_EDITOR_HEIGHT = 58;
-const MIN_PROBLEM_WIDTH = 22;
+const MIN_PROBLEM_WIDTH = 18;
 const MAX_PROBLEM_WIDTH = 50;
 const MIN_EDITOR_HEIGHT = 30;
 const MAX_EDITOR_HEIGHT = 75;
-
-function clampPaneSize(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, Math.round(value * 10) / 10));
-}
-
-function readWorkspaceLayout() {
-  try {
-    const value = JSON.parse(storage.get(WORKSPACE_LAYOUT_KEY) || "null");
-    return {
-      problemWidth: Number.isFinite(value?.problemWidth)
-        ? clampPaneSize(value.problemWidth, MIN_PROBLEM_WIDTH, MAX_PROBLEM_WIDTH)
-        : DEFAULT_PROBLEM_WIDTH,
-      editorHeight: Number.isFinite(value?.editorHeight)
-        ? clampPaneSize(value.editorHeight, MIN_EDITOR_HEIGHT, MAX_EDITOR_HEIGHT)
-        : DEFAULT_EDITOR_HEIGHT,
-    };
-  } catch {
-    return {
-      problemWidth: DEFAULT_PROBLEM_WIDTH,
-      editorHeight: DEFAULT_EDITOR_HEIGHT,
-    };
-  }
-}
 
 const editorTheme = EditorView.theme({
   "&": {
@@ -82,6 +61,7 @@ const editorTheme = EditorView.theme({
 });
 export function WorkspacePage() {
   const { problemId = "" } = useParams();
+  const { session } = useAuth();
   const [params] = useSearchParams();
   const context = params.get("context") || (params.get("source") || "Practice");
   const { data, loading, error } = useLoad(
@@ -111,10 +91,41 @@ export function WorkspacePage() {
         </main>
       </>
     );
-  return <Workspace key={data.id} problem={data} />;
+  return <Workspace key={`${session?.id}:${data.id}`} problem={data} />;
 }
 function Workspace({ problem }: { problem: Problem }) {
   const { dark } = useTheme();
+  const { session } = useAuth();
+  const layoutKey = workspaceKey(session?.id || "anonymous", "preferences", "layouts");
+  const notesKey = workspaceKey(session?.id || "anonymous", problem.id, "notes");
+  const [preferences, setPreferences] = useState(() => readLayouts(layoutKey));
+  const layout = preferences.layout;
+  const [focus, setFocus] = useState(false);
+  const [focusHeight, setFocusHeight] = useState(DEFAULT_EDITOR_HEIGHT);
+  const [notes, setNotes] = useState(() => storage.get(notesKey) || "");
+  const { problemWidth, secondBoundary } = preferences.sizes[layout];
+  const editorHeight = focus ? focusHeight : preferences.sizes[layout].editorHeight;
+  const threeColumns = !focus && (layout === "Leet" || layout === "Debug");
+  function updateSizes(change: Partial<PaneSizes>) {
+    setPreferences(value => ({ ...value, sizes: { ...value.sizes, [value.layout]: { ...value.sizes[value.layout], ...change } } }));
+  }
+  function setProblemWidth(value: number | ((previous: number) => number)) {
+    updateSizes({ problemWidth: typeof value === "function" ? value(problemWidth) : value });
+  }
+  function setEditorHeight(value: number | ((previous: number) => number)) {
+    const next = typeof value === "function" ? value(editorHeight) : value;
+    if (focus) setFocusHeight(next); else updateSizes({ editorHeight: next });
+  }
+  function chooseLayout(value: Layout) {
+    setPreferences(previous => ({ ...previous, layout: value }));
+    setExpanded(false);
+    setFocus(false);
+    if (value === "Debug") setProblemTab("Database");
+  }
+  function toggleFocus() {
+    if (!focus) setFocusHeight(preferences.sizes[layout].editorHeight);
+    setFocus(value => !value); setExpanded(false); setMobileTab("SQL");
+  }
   const [params] = useSearchParams();
   const source: Submission["source"] =
     params.get("source") === "Assignments"
@@ -130,21 +141,18 @@ function Workspace({ problem }: { problem: Problem }) {
   const [favorite, setFavorite] = useState(false);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [initialLayout] = useState(readWorkspaceLayout);
-  const [problemWidth, setProblemWidth] = useState(initialLayout.problemWidth);
-  const [editorHeight, setEditorHeight] = useState(initialLayout.editorHeight);
-  const [resizing, setResizing] = useState<"vertical" | "horizontal" | null>(null);
+  const [resizing, setResizing] = useState<"vertical" | "horizontal" | "secondary" | null>(null);
   const [cursor, setCursor] = useState({ line: 1, column: 1 });
   const editor = useRef<EditorView | null>(null);
   const workspaceLayout = useRef<HTMLDivElement | null>(null);
   const editorResults = useRef<HTMLDivElement | null>(null);
-  const activeResize = useRef<"vertical" | "horizontal" | null>(null);
+  const activeResize = useRef<"vertical" | "horizontal" | "secondary" | null>(null);
   const expandTrigger = useRef<HTMLButtonElement>(null);
   const [code, setCode] = useState(
     () => studentApi.getDraft(problem.id) ?? (problem.draft || ""),
   );
   const [selected, setSelected] = useState("");
-  const [problemTab, setProblemTab] = useState("Description");
+  const [problemTab, setProblemTab] = useState(layout === "Debug" ? "Database" : "Description");
   const [resultTab, setResultTab] = useState("Run result");
   const [mobileTab, setMobileTab] = useState("Problem");
   const [help, setHelp] = useState<"Hint" | null>(null);
@@ -168,15 +176,15 @@ function Workspace({ problem }: { problem: Problem }) {
   useEffect(() => {
     studentApi.saveDraft(problem.id, code);
   }, [code, problem.id]);
+  useEffect(() => { storage.set(layoutKey, JSON.stringify(preferences)); }, [layoutKey, preferences]);
   useEffect(() => {
-    const save = window.setTimeout(() => {
-      storage.set(
-        WORKSPACE_LAYOUT_KEY,
-        JSON.stringify({ problemWidth, editorHeight }),
-      );
-    }, 120);
-    return () => window.clearTimeout(save);
-  }, [problemWidth, editorHeight]);
+    const node = workspaceLayout.current;
+    if (!node) return;
+    const observer = new ResizeObserver(() => editor.current?.requestMeasure());
+    const editorNode = node.querySelector(".sql-editor");
+    if (editorNode) observer.observe(editorNode);
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     let active = true;
     studentApi.getPreferences().then((preferences) => {
@@ -273,7 +281,7 @@ function Workspace({ problem }: { problem: Problem }) {
     }
   }
   function resizeFromPointer(
-    orientation: "vertical" | "horizontal",
+    orientation: "vertical" | "horizontal" | "secondary",
     clientX: number,
     clientY: number,
   ) {
@@ -284,9 +292,14 @@ function Workspace({ problem }: { problem: Problem }) {
         clampPaneSize(
           ((clientX - bounds.left) / bounds.width) * 100,
           MIN_PROBLEM_WIDTH,
-          MAX_PROBLEM_WIDTH,
+          layout === "Default" ? MAX_PROBLEM_WIDTH : secondBoundary - 26,
         ),
       );
+      return;
+    }
+    if (orientation === "secondary") {
+      const bounds = workspaceLayout.current?.getBoundingClientRect();
+      if (bounds?.width) updateSizes({ secondBoundary: clampPaneSize(((clientX - bounds.left) / bounds.width) * 100, problemWidth + 26, 82) });
       return;
     }
     const bounds = editorResults.current?.getBoundingClientRect();
@@ -300,7 +313,7 @@ function Workspace({ problem }: { problem: Problem }) {
     );
   }
   function startResize(
-    orientation: "vertical" | "horizontal",
+    orientation: "vertical" | "horizontal" | "secondary",
     event: ReactPointerEvent<HTMLDivElement>,
   ) {
     if (event.button !== 0) return;
@@ -312,7 +325,7 @@ function Workspace({ problem }: { problem: Problem }) {
     resizeFromPointer(orientation, event.clientX, event.clientY);
   }
   function moveResize(
-    orientation: "vertical" | "horizontal",
+    orientation: "vertical" | "horizontal" | "secondary",
     event: ReactPointerEvent<HTMLDivElement>,
   ) {
     if (activeResize.current !== orientation) return;
@@ -326,18 +339,20 @@ function Workspace({ problem }: { problem: Problem }) {
     setResizing(null);
   }
   function resizeWithKeyboard(
-    orientation: "vertical" | "horizontal",
+    orientation: "vertical" | "horizontal" | "secondary",
     event: ReactKeyboardEvent<HTMLDivElement>,
   ) {
-    const direction = orientation === "vertical"
+    const direction = orientation !== "horizontal"
       ? event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0
       : event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : 0;
     if (!direction) return;
     event.preventDefault();
     if (orientation === "vertical") {
       setProblemWidth((value) =>
-        clampPaneSize(value + direction * 2, MIN_PROBLEM_WIDTH, MAX_PROBLEM_WIDTH),
+        clampPaneSize(value + direction * 2, MIN_PROBLEM_WIDTH, layout === "Default" ? MAX_PROBLEM_WIDTH : secondBoundary - 26),
       );
+    } else if (orientation === "secondary") {
+      updateSizes({ secondBoundary: clampPaneSize(secondBoundary + direction * 2, problemWidth + 26, 82) });
     } else {
       setEditorHeight((value) =>
         clampPaneSize(value + direction * 2, MIN_EDITOR_HEIGHT, MAX_EDITOR_HEIGHT),
@@ -350,8 +365,9 @@ function Workspace({ problem }: { problem: Problem }) {
   const seedDataText = (problem as Problem & { seedData?: string }).seedData || "";
   const seedTables = parseSeedData(seedDataText);
   return (
-    <div className={"workspace" + (expanded ? " editor-expanded" : "") + (resizing ? ` is-resizing resizing-${resizing}` : "")}>
+    <div className={"workspace" + (expanded ? " editor-expanded" : "") + (focus ? " focus-mode" : "") + (resizing ? ` is-resizing resizing-${resizing === "secondary" ? "vertical" : resizing}` : "")}>
       <AppHeader
+        workspaceActions={<WorkspaceTools layout={layout} onLayout={chooseLayout} focus={focus} onFocus={toggleFocus} timerKey={workspaceKey(session?.id || "anonymous", problem.id, "timer")} />}
         workspace={{
           title: problem.title,
           number: problem.number,
@@ -367,7 +383,7 @@ function Workspace({ problem }: { problem: Problem }) {
           role="tablist"
           aria-label="Workspace pane"
         >
-          {["Problem", "SQL", "Result"].map((t) => (
+          {(focus ? ["SQL", "Result"] : layout === "Note-taking" ? ["Problem", "SQL", "Result", "Notes"] : ["Problem", "SQL", "Result"]).map((t) => (
             <button
               key={t}
               role="tab"
@@ -381,9 +397,11 @@ function Workspace({ problem }: { problem: Problem }) {
         </div>
         <div
           ref={workspaceLayout}
-          className={`workspace-layout ${isAiPanelOpen ? "with-ai" : ""}`}
+          className={`workspace-layout layout-${layout.toLowerCase()} ${isAiPanelOpen ? "with-ai" : ""}`}
           style={{
             "--problem-pane-width": `${problemWidth}%`,
+            "--middle-pane-width": `${secondBoundary - problemWidth}%`,
+            "--last-pane-width": `${100 - secondBoundary}%`,
             "--editor-pane-height": `${editorHeight}%`,
           } as CSSProperties}
         >
@@ -593,7 +611,7 @@ function Workspace({ problem }: { problem: Problem }) {
             aria-orientation="vertical"
             aria-controls="workspace-problem-pane workspace-editor-results"
             aria-valuemin={MIN_PROBLEM_WIDTH}
-            aria-valuemax={MAX_PROBLEM_WIDTH}
+            aria-valuemax={layout === "Default" ? MAX_PROBLEM_WIDTH : secondBoundary - 26}
             aria-valuenow={Math.round(problemWidth)}
             aria-valuetext={`Problem pane ${Math.round(problemWidth)} percent`}
             tabIndex={0}
@@ -605,7 +623,7 @@ function Workspace({ problem }: { problem: Problem }) {
               activeResize.current = null;
               setResizing(null);
             }}
-            onDoubleClick={() => setProblemWidth(DEFAULT_PROBLEM_WIDTH)}
+            onDoubleClick={() => setProblemWidth(clampPaneSize(defaults[layout].problemWidth, MIN_PROBLEM_WIDTH, layout === "Default" ? MAX_PROBLEM_WIDTH : secondBoundary - 26))}
             onKeyDown={(event) => resizeWithKeyboard("vertical", event)}
           />
           <div id="workspace-editor-results" className="editor-results" ref={editorResults}>
@@ -720,26 +738,26 @@ function Workspace({ problem }: { problem: Problem }) {
               </div>
             </section>
             <div
-              className="workspace-splitter workspace-splitter-horizontal"
+              className={`workspace-splitter editor-result-splitter workspace-splitter-${threeColumns ? "vertical" : "horizontal"}`}
               role="separator"
               aria-label="Resize editor and result panes"
-              aria-orientation="horizontal"
+              aria-orientation={threeColumns ? "vertical" : "horizontal"}
               aria-controls="workspace-editor-pane workspace-result-pane"
-              aria-valuemin={MIN_EDITOR_HEIGHT}
-              aria-valuemax={MAX_EDITOR_HEIGHT}
-              aria-valuenow={Math.round(editorHeight)}
-              aria-valuetext={`Editor pane ${Math.round(editorHeight)} percent`}
+              aria-valuemin={threeColumns ? problemWidth + 26 : MIN_EDITOR_HEIGHT}
+              aria-valuemax={threeColumns ? 82 : MAX_EDITOR_HEIGHT}
+              aria-valuenow={Math.round(threeColumns ? secondBoundary : editorHeight)}
+              aria-valuetext={`${threeColumns ? "Column boundary" : "Editor height"} ${Math.round(threeColumns ? secondBoundary : editorHeight)} percent`}
               tabIndex={0}
-              onPointerDown={(event) => startResize("horizontal", event)}
-              onPointerMove={(event) => moveResize("horizontal", event)}
+              onPointerDown={(event) => startResize(threeColumns ? "secondary" : "horizontal", event)}
+              onPointerMove={(event) => moveResize(threeColumns ? "secondary" : "horizontal", event)}
               onPointerUp={stopResize}
               onPointerCancel={stopResize}
               onLostPointerCapture={() => {
                 activeResize.current = null;
                 setResizing(null);
               }}
-              onDoubleClick={() => setEditorHeight(DEFAULT_EDITOR_HEIGHT)}
-              onKeyDown={(event) => resizeWithKeyboard("horizontal", event)}
+              onDoubleClick={() => threeColumns ? updateSizes({ secondBoundary: clampPaneSize(defaults[layout].secondBoundary, problemWidth + 26, 82) }) : setEditorHeight(DEFAULT_EDITOR_HEIGHT)}
+              onKeyDown={(event) => resizeWithKeyboard(threeColumns ? "secondary" : "horizontal", event)}
             />
             <section
               id="workspace-result-pane"
@@ -812,6 +830,13 @@ function Workspace({ problem }: { problem: Problem }) {
               </div>
             </section>
           </div>
+          <div className="workspace-splitter workspace-splitter-vertical notes-splitter" role="separator" aria-label="Resize notes pane" aria-orientation="vertical" aria-valuemin={problemWidth + 26} aria-valuemax={82} aria-valuenow={secondBoundary} tabIndex={0}
+            onPointerDown={event => startResize("secondary", event)} onPointerMove={event => moveResize("secondary", event)} onPointerUp={stopResize} onPointerCancel={stopResize}
+            onLostPointerCapture={() => { activeResize.current = null; setResizing(null); }} onKeyDown={event => resizeWithKeyboard("secondary", event)} onDoubleClick={() => updateSizes({ secondBoundary: clampPaneSize(defaults[layout].secondBoundary, problemWidth + 26, 82) })} />
+          <section className={`notes-pane mobile-pane${mobileTab === "Notes" ? " mobile-visible" : ""}`} aria-label="Notes">
+            <div className="pane-tabs"><b>Notes</b><small className="muted">Saved locally</small></div>
+            <textarea aria-label="Problem notes" placeholder="Write your approach, observations or SQL reminders..." value={notes} onChange={event => { setNotes(event.target.value); storage.set(notesKey, event.target.value); }} />
+          </section>
           <div
             id="workspace-ai-panel"
             className="workspace-ai-region"

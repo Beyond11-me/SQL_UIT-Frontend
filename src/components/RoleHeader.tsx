@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { LogOut, Moon, Sun } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -15,7 +15,7 @@ const links: Record<Role, [string, string][]> = {
 };
 type NotificationTab = "updates" | "events";
 
-export function RoleHeader({ role, workspace }: { role: Role; workspace?: { title: string; number: string; topic: string; source?: string; context?: string; backTo?: string } }) {
+export function RoleHeader({ role, workspace, workspaceActions }: { role: Role; workspaceActions?: ReactNode; workspace?: { title: string; number: string; topic: string; source?: string; context?: string; backTo?: string } }) {
   const { session, logout } = useAuth();
   const { dark, setTheme } = useTheme();
   const location = useLocation();
@@ -129,6 +129,7 @@ export function RoleHeader({ role, workspace }: { role: Role; workspace?: { titl
         {links[role].map(([label, path]) => <NavLink key={path} to={path} className={({ isActive }) => isActive || location.pathname.startsWith(path + "/") ? "active" : undefined} onClick={() => setMenuOpen(false)}>{label}</NavLink>)}
       </nav>
     </>}
+    {workspace && workspaceActions}
     {role === "student" && <div className="student-header-status" role="group" aria-label="Student activity">
       <div className="notification-anchor" ref={notificationRef}>
         <button ref={notificationButton} type="button" className="notification-trigger" aria-label="Notifications" aria-expanded={notificationsOpen} aria-controls="student-notification-popover" onClick={() => { setNotificationsOpen(value => !value); setStreakOpen(false); setAccountOpen(false); }}>

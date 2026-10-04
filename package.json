@@ -7,6 +7,7 @@
     "dev": "vite",
     "start": "vite",
     "build": "tsc -b && vite build",
+    "test:workspace": "node tests/workspace.test.mjs",
     "test": "tsc --noEmit -p tsconfig.app.json && node tests/services.test.mjs"
   },
   "dependencies": {
