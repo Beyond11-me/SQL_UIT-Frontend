@@ -1,0 +1,667 @@
+/* ==========================================================================
+   Workspace Layouts, Timer, Notes & Focus Mode Styles
+   ========================================================================== */
+
+/* Top Bar Workspace Actions */
+.workspace-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex: none;
+}
+
+.workspace-header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius, 8px);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.workspace-header-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.workspace-header-btn.is-active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* Exit Focus Mode Button in Header */
+.focus-mode-exit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-full, 999px);
+  border: 1px solid var(--accent);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.focus-mode-exit-btn:hover {
+  background: var(--accent);
+  color: var(--on-accent, #ffffff);
+  box-shadow: 0 2px 8px rgba(79, 70, 200, 0.25);
+}
+
+/* Workspace Timer - Styled like LeetCode / Ref Image 3 */
+.workspace-timer {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--subtle);
+  border: 1px solid var(--border);
+  padding: 2px 4px;
+  gap: 4px;
+  box-sizing: border-box;
+}
+
+.workspace-timer-toggle {
+  background: none;
+  border: 0;
+  padding: 4px 3px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  transition: color 0.15s ease;
+}
+
+.workspace-timer-toggle:hover {
+  color: var(--text);
+}
+
+.workspace-timer-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #2563eb;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .workspace-timer-main {
+  color: #60a5fa;
+}
+
+.workspace-timer-main:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.workspace-timer-icon {
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.workspace-timer-main.is-running .workspace-timer-icon {
+  color: #2563eb;
+}
+
+[data-theme="dark"] .workspace-timer-main.is-running .workspace-timer-icon {
+  color: #60a5fa;
+}
+
+.workspace-timer-digits {
+  letter-spacing: 0.5px;
+}
+
+.workspace-timer-reset {
+  background: none;
+  border: 0;
+  padding: 4px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  transition: color 0.15s ease, transform 0.2s ease;
+}
+
+.workspace-timer-reset:hover {
+  color: var(--accent);
+  transform: rotate(-45deg);
+}
+
+.workspace-timer-collapsed-btn {
+  background: none;
+  border: 0;
+  padding: 4px 6px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  border-radius: 999px;
+}
+
+.workspace-timer-collapsed-btn.is-running {
+  color: #2563eb;
+}
+
+/* Layout Popover Anchor & Dialog */
+.layout-popover-anchor {
+  position: relative;
+  flex: none;
+}
+
+.layout-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 328px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+  z-index: 120;
+  animation: layoutPopoverIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes layoutPopoverIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.layout-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.layout-popover-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.popover-close-btn {
+  background: none;
+  border: 0;
+  padding: 4px;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.popover-close-btn:hover {
+  color: var(--text);
+  background: var(--subtle);
+}
+
+/* 2x2 Layout Grid */
+.layout-popover-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.layout-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 8px 8px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.layout-card:hover {
+  border-color: var(--accent);
+  background: var(--subtle);
+  transform: translateY(-1px);
+}
+
+.layout-card.is-active {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* Wireframe Thumbnails */
+.layout-thumb {
+  width: 100%;
+  height: 58px;
+  background: var(--subtle);
+  border-radius: 6px;
+  padding: 5px;
+  display: flex;
+  gap: 3px;
+  box-sizing: border-box;
+}
+
+.layout-card.is-active .layout-thumb {
+  background: rgba(79, 70, 200, 0.08);
+}
+
+.thumb-block {
+  background: #cfd3e8;
+  border-radius: 3px;
+  transition: background-color 0.15s ease;
+}
+
+[data-theme="dark"] .thumb-block {
+  background: #393e58;
+}
+
+.layout-card.is-active .thumb-block {
+  background: #a29bf0;
+}
+
+[data-theme="dark"] .layout-card.is-active .thumb-block {
+  background: #635db7;
+}
+
+/* Default Thumb */
+.thumb-left {
+  flex: 32;
+  height: 100%;
+}
+
+.thumb-split {
+  flex: 68;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  height: 100%;
+}
+
+.thumb-top {
+  flex: 58;
+  width: 100%;
+}
+
+.thumb-bottom {
+  flex: 42;
+  width: 100%;
+}
+
+/* Leet & Debug 3-Col Thumb */
+.thumb-col-3 {
+  flex: 1;
+  height: 100%;
+}
+
+.thumb-db {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+}
+
+.thumb-db-line {
+  display: block;
+  width: 80%;
+  height: 2px;
+  border-radius: 1px;
+  background: #8b8fb0;
+}
+
+.layout-card.is-active .thumb-db-line {
+  background: var(--accent);
+}
+
+/* Note-taking Thumb */
+.thumb-left-compact {
+  flex: 28;
+  height: 100%;
+}
+
+.thumb-split-compact {
+  flex: 46;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  height: 100%;
+}
+
+.thumb-notes {
+  flex: 26;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+}
+
+.thumb-line {
+  display: block;
+  width: 70%;
+  height: 2px;
+  border-radius: 1px;
+  background: #8b8fb0;
+}
+
+.layout-card.is-active .thumb-line {
+  background: var(--accent);
+}
+
+.layout-card-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.layout-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.layout-card.is-active .layout-name {
+  color: var(--accent);
+}
+
+.layout-active-check {
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+}
+
+.layout-popover-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0 12px;
+}
+
+/* Focus Mode Button in Popover */
+.focus-mode-card-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--subtle);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.focus-mode-card-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+  color: var(--accent);
+}
+
+.focus-mode-card-btn.is-focus-active {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.focus-emoji {
+  font-size: 15px;
+}
+
+/* Notes Pane */
+.notes-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+}
+
+.notes-header {
+  height: 54px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--subtle);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.notes-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.notes-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notes-saved-status {
+  font-size: 11px;
+  color: var(--muted);
+  margin-right: 4px;
+}
+
+.notes-action-btn {
+  padding: 4px;
+}
+
+.notes-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.notes-textarea {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  outline: none;
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--surface);
+  resize: none;
+}
+
+.notes-textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.65;
+}
+
+.notes-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 14px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--surface);
+  flex: none;
+}
+
+/* Flexible Multi-Column Workspace Panes */
+.workspace-layout {
+  position: relative !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: row !important;
+  overflow: hidden !important;
+  width: 100% !important;
+}
+
+.workspace-header {
+  overflow: visible !important;
+}
+
+.role-header {
+  overflow: visible !important;
+}
+
+.student-header-status {
+  overflow: visible !important;
+}
+
+.workspace-header-actions {
+  overflow: visible !important;
+}
+
+.editor-results {
+  display: grid !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  height: 100% !important;
+}
+
+.workspace-splitter-vertical {
+  width: 12px !important;
+  min-width: 12px !important;
+  max-width: 12px !important;
+  flex: 0 0 12px !important;
+  height: 100% !important;
+}
+
+.workspace-splitter-horizontal {
+  height: 12px !important;
+  min-height: 12px !important;
+  max-height: 12px !important;
+  flex: 0 0 12px !important;
+  width: 100% !important;
+}
+
+.problem-pane,
+.editor-pane,
+.result-pane,
+.notes-pane {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Full column editor & result styling in 3-column layouts */
+.workspace-col-full {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+
+.workspace-col-full .editor-pane,
+.workspace-col-full .result-pane {
+  height: 100%;
+  flex: 1;
+}
+
+/* Small screen adjustments */
+@media (max-width: 768px) {
+  .workspace-header-actions {
+    gap: 6px;
+  }
+
+  .focus-mode-exit-btn span {
+    display: none;
+  }
+
+  .workspace-timer-digits {
+    font-size: 11px;
+  }
+
+  .workspace-layout {
+    display: block !important;
+    height: 100% !important;
+  }
+
+  .workspace-splitter {
+    display: none !important;
+  }
+
+  .mobile-pane {
+    display: none !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .mobile-pane.mobile-visible {
+    display: flex !important;
+  }
+
+  .editor-results {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+
+/* Expanded Editor Mode overrides */
+.editor-expanded .notes-pane {
+  display: none !important;
+}
+
+.editor-expanded .workspace-col-full {
+  width: 100% !important;
+  flex: 1 1 100% !important;
+}

@@ -18,7 +18,7 @@ export function contestBannerClass(id: string) {
 export function resolveContestBannerUrl(bannerUrl?: string | null): string | undefined {
   if (!bannerUrl) return undefined;
   if (/^(?:[a-z]+:|data:|blob:|\/\/)/i.test(bannerUrl)) return bannerUrl;
-  const apiBase = import.meta.env.VITE_API_URL || window.location.origin;
+  const apiBase = (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) || (typeof window !== "undefined" ? window.location.origin : "http://localhost:5173");
   return new URL(bannerUrl, apiBase.endsWith("/") ? apiBase : apiBase + "/").toString();
 }
 

@@ -466,6 +466,7 @@ function BuilderPage({ contest }: { contest: boolean }) {
   const durationMinutes = scheduleValid ? Math.round((new Date(draft.closes).getTime() - new Date(draft.opens).getTime()) / 60000) : 0;
   function getPublishIssues() {
     const issues: string[] = [];
+    if (!draft) return issues;
     if (!draft.title.trim()) issues.push("Enter a title.");
     if (!contest && draft.classIds.length === 0) issues.push("Select at least one class.");
     if (contest && draft.audienceType === "classes" && draft.classIds.length === 0) issues.push("Select at least one class or choose All students.");

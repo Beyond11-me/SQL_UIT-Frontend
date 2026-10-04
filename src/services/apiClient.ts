@@ -12,7 +12,7 @@ export async function apiFetch<T = any>(endpoint: string, options: RequestInit =
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const baseUrl = import.meta.env.VITE_API_URL || "";
+  const baseUrl = (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) || "";
   const fullUrl = endpoint.startsWith("http") ? endpoint : `${baseUrl}${endpoint}`;
 
   const response = await fetch(fullUrl, {

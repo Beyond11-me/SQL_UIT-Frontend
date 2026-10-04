@@ -15,7 +15,15 @@ const links: Record<Role, [string, string][]> = {
 };
 type NotificationTab = "updates" | "events";
 
-export function RoleHeader({ role, workspace }: { role: Role; workspace?: { title: string; number: string; topic: string; source?: string; context?: string; backTo?: string } }) {
+export function RoleHeader({
+  role,
+  workspace,
+  workspaceActions,
+}: {
+  role: Role;
+  workspace?: { title: string; number: string; topic: string; source?: string; context?: string; backTo?: string };
+  workspaceActions?: React.ReactNode;
+}) {
   const { session, logout } = useAuth();
   const { dark, setTheme } = useTheme();
   const location = useLocation();
@@ -129,6 +137,11 @@ export function RoleHeader({ role, workspace }: { role: Role; workspace?: { titl
         {links[role].map(([label, path]) => <NavLink key={path} to={path} className={({ isActive }) => isActive || location.pathname.startsWith(path + "/") ? "active" : undefined} onClick={() => setMenuOpen(false)}>{label}</NavLink>)}
       </nav>
     </>}
+    {workspaceActions && (
+      <div className="workspace-header-actions" role="toolbar" aria-label="Workspace controls">
+        {workspaceActions}
+      </div>
+    )}
     {role === "student" && <div className="student-header-status" role="group" aria-label="Student activity">
       <div className="notification-anchor" ref={notificationRef}>
         <button ref={notificationButton} type="button" className="notification-trigger" aria-label="Notifications" aria-expanded={notificationsOpen} aria-controls="student-notification-popover" onClick={() => { setNotificationsOpen(value => !value); setStreakOpen(false); setAccountOpen(false); }}>
