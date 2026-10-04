@@ -11,8 +11,9 @@ import CodeMirror from "@uiw/react-codemirror";
 import { sql, MSSQL } from "@codemirror/lang-sql";
 import { EditorView } from "@codemirror/view";
 import { X, Star, RotateCcw, Maximize2, Minimize2, Braces } from "lucide-react";
-import { indentRange } from "@codemirror/language";
+import { bracketMatching, indentRange } from "@codemirror/language";
 import { AppHeader } from "../../components/AppHeader";
+import { workspaceEditorExtensions } from "../../components/workspaceEditorExtensions";
 import { DataGrid, Dialog, Empty, Loading, Status } from "../../components/ui";
 import { ProblemMarkdown } from "../../components/ProblemMarkdown";
 import { useLoad } from "../../components/useLoad";
@@ -55,31 +56,6 @@ function readWorkspaceLayout() {
   }
 }
 
-const editorTheme = EditorView.theme({
-  "&": {
-    backgroundColor: "var(--surface)",
-    color: "var(--text)",
-    height: "100%",
-  },
-  ".cm-content": {
-    fontFamily: '"JetBrains Mono", monospace',
-    padding: "24px 0",
-    lineHeight: "24px",
-  },
-  ".cm-gutters": {
-    backgroundColor: "var(--surface)",
-    color: "var(--muted)",
-    border: "none",
-    padding: "0 8px 0 16px",
-  },
-  ".cm-activeLine": { backgroundColor: "var(--subtle)" },
-  ".cm-activeLineGutter": { backgroundColor: "transparent" },
-  ".cm-cursor": { borderLeftColor: "var(--accent)" },
-  ".cm-scroller": { overflow: "auto" },
-  ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {
-    backgroundColor: "var(--selection)",
-  },
-});
 export function WorkspacePage() {
   const { problemId = "" } = useParams();
   const [params] = useSearchParams();
@@ -665,7 +641,8 @@ function Workspace({ problem }: { problem: Problem }) {
                   theme={dark ? "dark" : "light"}
                   extensions={[
                     sql({ dialect: MSSQL }),
-                    editorTheme,
+                    bracketMatching(),
+                    ...workspaceEditorExtensions,
                   ]}
                   onChange={setCode}
                   onCreateEditor={(view) => {
@@ -681,7 +658,7 @@ function Workspace({ problem }: { problem: Problem }) {
                     setSelected(v.state.sliceDoc(selection.from, selection.to));
                   }}
                   aria-label="SQL query"
-                  basicSetup={{ foldGutter: false, highlightActiveLine: true }}
+                  basicSetup={{ foldGutter: false, drawSelection: true, highlightActiveLine: true }}
                 />
               </div>
               <div className="editor-actions">

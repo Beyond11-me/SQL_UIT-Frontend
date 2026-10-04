@@ -1375,7 +1375,53 @@ body:has(.assignments-page) {
   height: 100%;
 }
 .sql-editor .cm-editor {
-  font-size: 13px;
+  font-size: 14px;
+}
+.workspace .sql-editor {
+  --workspace-keyword: #0000ff;
+  --workspace-name: #267f99;
+  --workspace-function: #795e26;
+  --workspace-number: #098658;
+  --workspace-string: #a31515;
+  --workspace-comment: #008000;
+  --workspace-line-number: #007c9b;
+  --workspace-active-line-number: #001080;
+  --workspace-space-dot: #6f9dc4;
+}
+:root[data-theme="dark"] .workspace .sql-editor {
+  --workspace-keyword: #569cd6;
+  --workspace-name: #9cdcfe;
+  --workspace-function: #dcdcaa;
+  --workspace-number: #b5cea8;
+  --workspace-string: #ce9178;
+  --workspace-comment: #6a9955;
+  --workspace-line-number: #75a6c7;
+  --workspace-active-line-number: #c6dcfa;
+  --workspace-space-dot: #78a3c7;
+}
+.workspace .sql-editor .cm-ws-keyword { color: var(--workspace-keyword); }
+.workspace .sql-editor .cm-ws-name { color: var(--workspace-name); }
+.workspace .sql-editor .cm-ws-function { color: var(--workspace-function); }
+.workspace .sql-editor .cm-ws-number { color: var(--workspace-number); }
+.workspace .sql-editor .cm-ws-string { color: var(--workspace-string); }
+.workspace .sql-editor .cm-ws-comment { color: var(--workspace-comment); }
+.workspace .sql-editor .cm-ws-punctuation { color: var(--text); }
+.workspace .sql-editor .cm-selected-space {
+  background-image: radial-gradient(circle, var(--workspace-space-dot) 1px, transparent 1px);
+  background-size: 1ch 1em;
+  background-position: left center;
+  background-repeat: repeat-x;
+}
+/* The custom selection layer follows the text width instead of filling the row. */
+.workspace .sql-editor .cm-selectionLayer .cm-selectionBackground {
+  visibility: hidden;
+}
+.workspace .sql-editor .cm-contentSelectionBackground {
+  background-color: #add6ff;
+  border-radius: 3px;
+}
+:root[data-theme="dark"] .workspace .sql-editor .cm-contentSelectionBackground {
+  background-color: #264f78;
 }
 .editor-actions {
   display: flex;
